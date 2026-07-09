@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*$py.class
+_reference_vnstock/
+.venv/
+env/
+*.log

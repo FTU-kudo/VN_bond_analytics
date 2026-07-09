@@ -2,9 +2,9 @@ name: Weekly Bond Yield Update
 
 on:
   schedule:
-    # Chạy vào 23:00 sáng thứ Hai hàng tuần (Giờ UTC, tương đương 07:00 giờ VN)
-    - cron: '0 16 * * 0'
-  workflow_dispatch: # Cho phép chạy thủ công để test
+    # Chạy vào 00:00 UTC sáng thứ Hai hàng tuần (tương đương 07:00 giờ VN)
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Cho phép kích hoạt thủ công để test trực tiếp trên GitHub
 
 jobs:
   update-bond-data:
@@ -13,28 +13,40 @@ jobs:
     permissions:
       contents: write # Cấp quyền cho bot tự commit file vào repo
 
+    env:
+      PYTHONUTF8: 1
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
+        cache: 'pip'
 
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Main Script
+    - name: Run Main Quantitative Analysis Pipeline
       run: |
         python src/main.py
 
-    - name: Commit and Push Output Files
+    - name: Upload Output Artifacts (CSV, HTML, PDF)
+      uses: actions/upload-artifact@v4
+      with:
+        name: vietnam-bond-analysis-reports
+        path: output/
+        retention-days: 30
+
+    - name: Commit and Push Output Files to Repository
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add output/
-        git commit -m "Auto-update: Weekly Bond Yield Data & Reports $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+        git add output/ src/fonts/ requirements.txt src/
+        git commit -m "Auto-update: Vietnam 10-Year Bond Analytics & Reports ($(date -u +'%Y-%m-%d'))" || echo "No changes to commit"
         git push
+
