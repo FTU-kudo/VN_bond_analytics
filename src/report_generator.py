@@ -12,7 +12,7 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
     """Tạo file HTML trực quan hóa bằng Plotly cao cấp (Dark Glassmorphism UI)."""
     os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
 
-    tenors = [col for col in ['1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y'] if col in df.columns]
+    tenors = [col for col in ['3M', '6M', '9M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y'] if col in df.columns]
 
     # Tính toán các chỉ số KPI
     latest_row = df.iloc[-1]
@@ -34,8 +34,10 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
     # 1. Biểu đồ lịch sử lợi suất 10 năm
     fig1 = go.Figure()
     colors = {
-        '1Y': '#38bdf8', '2Y': '#818cf8', '3Y': '#c084fc',
-        '5Y': '#f472b6', '7Y': '#fb7185', '10Y': '#34d399', '15Y': '#fbbf24'
+        '3M': '#06b6d4', '6M': '#0ea5e9', '9M': '#38bdf8',
+        '1Y': '#60a5fa', '2Y': '#818cf8', '3Y': '#a78bfa',
+        '5Y': '#f472b6', '7Y': '#fb7185', '10Y': '#34d399',
+        '15Y': '#fbbf24', '20Y': '#f59e0b'
     }
     for col in tenors:
         fig1.add_trace(go.Scatter(
@@ -318,7 +320,7 @@ def generate_pdf_report(df: pd.DataFrame, output_path: str):
     plt.close()
 
     # Figure 2: Cấu trúc đường cong lợi suất
-    tenors = [col for col in ['1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y'] if col in df.columns]
+    tenors = [col for col in ['3M', '6M', '9M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y'] if col in df.columns]
     latest_row = df.iloc[-1]
     step_1yr = 260 if len(df) > 1000 else 52
     idx_1yr_ago = max(0, len(df) - step_1yr)

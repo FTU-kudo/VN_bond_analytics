@@ -29,15 +29,19 @@ def main():
         print("[!] Lỗi: Pipeline dừng lại do không thu thập được dữ liệu.")
         return
 
-    # 2. Xuất file 1: Dữ liệu lịch sử (Historical Data CSV)
+    # 2. Xuất file 1: Dữ liệu lịch sử (Historical Data CSV & Excel XLSX)
     csv_path = os.path.join(output_dir, 'bond_data.csv')
+    xlsx_path = os.path.join(output_dir, 'bond_data.xlsx')
     try:
         df.to_csv(csv_path, encoding='utf-8-sig')
-        print(f"[1/3] Đã xuất file Dữ liệu lịch sử (Historical Data CSV): {csv_path}")
+        df.to_excel(xlsx_path)
+        print(f"[1/3] Đã xuất file Dữ liệu lịch sử (CSV & Excel): {csv_path} | {xlsx_path}")
     except PermissionError:
         fallback_csv = os.path.join(output_dir, 'bond_data_latest.csv')
+        fallback_xlsx = os.path.join(output_dir, 'bond_data_latest.xlsx')
         df.to_csv(fallback_csv, encoding='utf-8-sig')
-        print(f"[1/3] Cảnh báo: {csv_path} đang mở trong Excel. Đã lưu dữ liệu mới vào: {fallback_csv}")
+        df.to_excel(fallback_xlsx)
+        print(f"[1/3] Cảnh báo file đang mở. Đã lưu dữ liệu mới vào: {fallback_csv} | {fallback_xlsx}")
 
     # 3. Xuất file 2: Dashboard trực quan HTML (Interactive Dashboard)
     html_path = os.path.join(output_dir, 'bond_dashboard.html')

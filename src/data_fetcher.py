@@ -79,7 +79,7 @@ def scrape_trading_economics_10y() -> float:
 def fetch_single_hnx_date(dt_str: str):
     """
     Truy vấn đường cong lợi suất TPCP chính thức từ Sở Giao dịch Chứng khoán Hà Nội (HNX) cho ngày dt_str.
-    Nếu là ngày nghỉ/cuối tuần, tự động tra cứu lùi đến ngày giao dịch chính thức gần nhất.
+    Thu thập đầy đủ 11 kỳ hạn chuẩn từ 3 tháng đến 20 năm (3M -> 20Y).
     """
     try:
         from curl_cffi import requests as cffi_requests
@@ -103,7 +103,13 @@ def fetch_single_hnx_date(dt_str: str):
                         val_str = val_str.replace(",", ".").strip()
                         try:
                             val = float(val_str)
-                            if tenor == "1 năm":
+                            if tenor == "3 tháng":
+                                yields["3M"] = round(val, 3)
+                            elif tenor == "6 tháng":
+                                yields["6M"] = round(val, 3)
+                            elif tenor == "9 tháng":
+                                yields["9M"] = round(val, 3)
+                            elif tenor == "1 năm":
                                 yields["1Y"] = round(val, 3)
                             elif tenor == "2 năm":
                                 yields["2Y"] = round(val, 3)
@@ -117,6 +123,8 @@ def fetch_single_hnx_date(dt_str: str):
                                 yields["10Y"] = round(val, 3)
                             elif tenor == "15 năm":
                                 yields["15Y"] = round(val, 3)
+                            elif tenor == "20 năm":
+                                yields["20Y"] = round(val, 3)
                         except ValueError:
                             pass
                 if "10Y" in yields and "1Y" in yields:
@@ -177,7 +185,7 @@ def fetch_hnx_official_yields(start_date: str, end_date: str) -> pd.DataFrame:
 
     # Lọc đúng phạm vi start_date -> end_date
     df = df_cache.loc[start_dt:end_dt].copy()
-    standard_tenors = ['1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y']
+    standard_tenors = ['3M', '6M', '9M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y']
     for t in standard_tenors:
         if t not in df.columns:
             df[t] = np.nan
