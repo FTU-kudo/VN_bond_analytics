@@ -5,3 +5,4 @@ matplotlib==3.8.2
 vnstock==2.0.6
 fpdf2==2.7.6
 kaleido==0.2.1
+vnstock==3.0.2
