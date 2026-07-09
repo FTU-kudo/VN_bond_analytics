@@ -131,15 +131,15 @@ def fetch_single_hnx_date(dt_str: str):
 
 def fetch_hnx_official_yields(start_date: str, end_date: str) -> pd.DataFrame:
     """
-    Lớp 3 (Thực tế 100%): Thu thập dữ liệu Lợi suất Trái phiếu Chính phủ Việt Nam
+    Lớp 3 (Thực tế 100%): Thu thập dữ liệu Lợi suất Trái phiếu Chính phủ Việt Nam THEO NGÀY
     TRỰC TIẾP từ Cổng thông tin Đường cong lợi suất chính thức của Sở Giao dịch Chứng khoán Hà Nội (HNX).
-    Sử dụng bộ nhớ đệm (cache) để truy xuất tức thì các mốc lịch sử và tự động cào bổ sung các mốc tuần mới.
+    Sử dụng bộ nhớ đệm (cache) để truy xuất tức thì các mốc lịch sử và tự động cào bổ sung các ngày giao dịch mới.
     """
     start_dt = pd.to_datetime(start_date)
     end_dt = pd.to_datetime(end_date)
-    target_dates = pd.date_range(start=start_dt, end=end_dt, freq='W-MON')
+    target_dates = pd.date_range(start=start_dt, end=end_dt, freq='B')
     if len(target_dates) == 0:
-        target_dates = pd.date_range(start='2016-01-01', end=datetime.now(), freq='W-MON')
+        target_dates = pd.date_range(start='2016-01-01', end=datetime.now(), freq='B')
 
     cache_path = os.path.join(os.path.dirname(__file__), 'data', 'hnx_history_cache.csv')
     df_cache = pd.DataFrame()
@@ -151,14 +151,14 @@ def fetch_hnx_official_yields(start_date: str, end_date: str) -> pd.DataFrame:
         except Exception as e:
             print(f"[-] Lỗi đọc cache HNX: {e}")
 
-    # Xác định các ngày tuần mới chưa có trong cache
+    # Xác định các ngày làm việc mới chưa có trong cache
     existing_dates = set(df_cache.index.strftime('%Y-%m-%d')) if not df_cache.empty else set()
     missing_dates = [d.strftime('%Y-%m-%d') for d in target_dates if d.strftime('%Y-%m-%d') not in existing_dates]
 
     if missing_dates:
-        print(f"[*] Đang thu thập bổ sung {len(missing_dates)} mốc thời gian từ cổng HNX (hnx.vn)...")
+        print(f"[*] Đang thu thập bổ sung {len(missing_dates)} ngày giao dịch mới từ cổng HNX (hnx.vn)...")
         from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=16) as executor:
             new_records = list(executor.map(fetch_single_hnx_date, missing_dates))
         new_records = [r for r in new_records if r is not None]
         if new_records:
@@ -199,7 +199,7 @@ def fetch_bond_yields(start_date: str, end_date: str) -> pd.DataFrame:
     Hàm tổng hợp lấy dữ liệu Lợi suất Trái phiếu Chính phủ Việt Nam (10 năm: 2016-2026),
     sử dụng 100% dữ liệu thực tế chính thức từ Sở Giao dịch Chứng khoán Hà Nội (HNX).
     """
-    print(f"[*] Đang thu thập bộ dữ liệu Lợi suất TPCP Việt Nam thực tế 100% ({start_date} -> {end_date})...")
+    print(f"[*] Đang thu thập bộ dữ liệu Lợi suất TPCP Việt Nam thực tế 100% THEO NGÀY ({start_date} -> {end_date})...")
 
     # Lớp 1: Thử vnstock
     df = fetch_vnstock_yields(start_date, end_date)
@@ -214,8 +214,8 @@ def fetch_bond_yields(start_date: str, end_date: str) -> pd.DataFrame:
         return df
 
     # Lớp 3: Dữ liệu thực tế 100% từ Sở Giao dịch Chứng khoán Hà Nội (HNX - hnx.vn)
-    print("[+] Kích hoạt Lớp 3: Dữ liệu giao dịch thực tế chính thức từ HNX (Sở GDCK Hà Nội)...")
+    print("[+] Kích hoạt Lớp 3: Dữ liệu giao dịch thực tế THEO NGÀY từ HNX (Sở GDCK Hà Nội)...")
     df = fetch_hnx_official_yields(start_date, end_date)
-    print(f"[+] Hoàn tất tổng hợp bộ dữ liệu Lợi suất Trái phiếu VN thực tế 100%: {len(df)} quan sát tuần.")
+    print(f"[+] Hoàn tất tổng hợp bộ dữ liệu Lợi suất Trái phiếu VN theo ngày: {len(df)} quan sát ngày.")
     return df
 

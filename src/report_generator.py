@@ -16,7 +16,9 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
 
     # Tính toán các chỉ số KPI
     latest_row = df.iloc[-1]
-    prev_year_idx = max(0, len(df) - 52)
+    step_1yr = 260 if len(df) > 1000 else 52
+    step_5yr = 1300 if len(df) > 1000 else 260
+    prev_year_idx = max(0, len(df) - step_1yr)
     prev_year_row = df.iloc[prev_year_idx]
 
     current_10y = latest_row.get('10Y', 0)
@@ -54,8 +56,8 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
 
     # 2. Biểu đồ cấu trúc đường cong lợi suất (Yield Curve Term Structure)
     fig2 = go.Figure()
-    idx_1yr_ago = max(0, len(df) - 52)
-    idx_5yr_ago = max(0, len(df) - 260)
+    idx_1yr_ago = max(0, len(df) - step_1yr)
+    idx_5yr_ago = max(0, len(df) - step_5yr)
 
     fig2.add_trace(go.Scatter(
         x=tenors, y=[latest_row[t] for t in tenors],
@@ -318,7 +320,8 @@ def generate_pdf_report(df: pd.DataFrame, output_path: str):
     # Figure 2: Cấu trúc đường cong lợi suất
     tenors = [col for col in ['1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y'] if col in df.columns]
     latest_row = df.iloc[-1]
-    idx_1yr_ago = max(0, len(df) - 52)
+    step_1yr = 260 if len(df) > 1000 else 52
+    idx_1yr_ago = max(0, len(df) - step_1yr)
 
     plt.figure(figsize=(10, 3.8), dpi=300)
     plt.plot(tenors, [latest_row[t] for t in tenors], marker='o', linewidth=2.5, color='#059669', label=f'Hien tai ({df.index[-1].strftime("%d/%m/%Y")})')
