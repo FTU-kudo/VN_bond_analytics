@@ -31,18 +31,33 @@ def main():
 
     # 2. Xuất file 1: Dữ liệu lịch sử (Historical Data CSV)
     csv_path = os.path.join(output_dir, 'bond_data.csv')
-    df.to_csv(csv_path, encoding='utf-8-sig')
-    print(f"[1/3] Đã xuất file Dữ liệu lịch sử (Historical Data CSV): {csv_path}")
+    try:
+        df.to_csv(csv_path, encoding='utf-8-sig')
+        print(f"[1/3] Đã xuất file Dữ liệu lịch sử (Historical Data CSV): {csv_path}")
+    except PermissionError:
+        fallback_csv = os.path.join(output_dir, 'bond_data_latest.csv')
+        df.to_csv(fallback_csv, encoding='utf-8-sig')
+        print(f"[1/3] Cảnh báo: {csv_path} đang mở trong Excel. Đã lưu dữ liệu mới vào: {fallback_csv}")
 
     # 3. Xuất file 2: Dashboard trực quan HTML (Interactive Dashboard)
     html_path = os.path.join(output_dir, 'bond_dashboard.html')
-    generate_html_dashboard(df, html_path)
-    print(f"[2/3] Đã xuất file Dashboard trực quan HTML: {html_path}")
+    try:
+        generate_html_dashboard(df, html_path)
+        print(f"[2/3] Đã xuất file Dashboard trực quan HTML: {html_path}")
+    except PermissionError:
+        fallback_html = os.path.join(output_dir, 'bond_dashboard_latest.html')
+        generate_html_dashboard(df, fallback_html)
+        print(f"[2/3] Đã lưu Dashboard HTML vào: {fallback_html}")
 
     # 4. Xuất file 3: Báo cáo định lượng PDF (Institutional PDF Report)
     pdf_path = os.path.join(output_dir, 'bond_report.pdf')
-    generate_pdf_report(df, pdf_path)
-    print(f"[3/3] Đã xuất file Báo cáo phân tích PDF: {pdf_path}")
+    try:
+        generate_pdf_report(df, pdf_path)
+        print(f"[3/3] Đã xuất file Báo cáo phân tích PDF: {pdf_path}")
+    except PermissionError:
+        fallback_pdf = os.path.join(output_dir, 'bond_report_latest.pdf')
+        generate_pdf_report(df, fallback_pdf)
+        print(f"[3/3] Đã lưu Báo cáo PDF vào: {fallback_pdf}")
 
     print("\n==================================================================")
     print(" Hoàn tất toàn bộ quy trình Phân tích & Tạo Báo cáo Trái phiếu VN")
