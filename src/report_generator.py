@@ -9,10 +9,11 @@ from fpdf import FPDF, XPos, YPos
 
 
 def generate_html_dashboard(df: pd.DataFrame, output_path: str):
-    """Tạo file HTML trực quan hóa bằng Plotly cao cấp (Dark Glassmorphism UI)."""
+    """Tạo file HTML trực quan hóa bằng Plotly cao cấp (Light Executive White Theme)."""
     os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
 
-    tenors = [col for col in ['3M', '6M', '9M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y'] if col in df.columns]
+    all_tenors = [col for col in ['3M', '6M', '9M', '1Y', '2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y'] if col in df.columns]
+    core_tenors = [col for col in ['3Y', '5Y', '7Y', '10Y', '15Y'] if col in df.columns]
 
     # Tính toán các chỉ số KPI
     latest_row = df.iloc[-1]
@@ -31,60 +32,69 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
     min_10y = df['10Y'].min() if '10Y' in df.columns else 0
     max_10y = df['10Y'].max() if '10Y' in df.columns else 0
 
-    # 1. Biểu đồ lịch sử lợi suất 10 năm
+    # 1. Biểu đồ lịch sử lợi suất (Tập trung vào 5 kỳ hạn chủ đạo 3Y-15Y chiếm >80% khối lượng)
     fig1 = go.Figure()
     colors = {
-        '3M': '#06b6d4', '6M': '#0ea5e9', '9M': '#38bdf8',
-        '1Y': '#60a5fa', '2Y': '#818cf8', '3Y': '#a78bfa',
-        '5Y': '#f472b6', '7Y': '#fb7185', '10Y': '#34d399',
-        '15Y': '#fbbf24', '20Y': '#f59e0b'
+        '3Y': '#2563eb',   # Deep Royal Blue
+        '5Y': '#7c3aed',   # Vibrant Purple
+        '7Y': '#db2777',   # Deep Magenta
+        '10Y': '#059669',  # Emerald Green (Bold benchmark)
+        '15Y': '#d97706'   # Warm Amber
     }
-    for col in tenors:
+    for col in core_tenors:
         fig1.add_trace(go.Scatter(
             x=df.index, y=df[col],
             mode='lines', name=f'Kỳ hạn {col}',
-            line=dict(width=2.5 if col == '10Y' else 1.5, color=colors.get(col, '#94a3b8'))
+            line=dict(width=3.0 if col == '10Y' else 1.8, color=colors.get(col, '#475569'))
         ))
     fig1.update_layout(
-        title='Lịch sử Lợi suất Trái phiếu Chính phủ Việt Nam (2016 - 2026)',
+        title='Lịch sử Lợi suất Trái phiếu Chính phủ Việt Nam - Các kỳ hạn chủ đạo (3Y - 15Y)',
         xaxis_title='Thời gian', yaxis_title='Lợi suất (%)',
-        template='plotly_dark',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(15,23,42,0.6)',
-        font=dict(family='Inter, sans-serif', size=13),
+        template='plotly_white',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='#ffffff',
+        font=dict(family='Inter, sans-serif', size=13, color='#0f172a'),
         hovermode='x unified',
+        hoverlabel=dict(bgcolor='white', bordercolor='#cbd5e1', font=dict(family='Inter, sans-serif', size=13, color='#0f172a')),
+        legend=dict(font=dict(color='#0f172a', size=12), bgcolor='rgba(255,255,255,0.9)', bordercolor='#e2e8f0', borderwidth=1),
         height=430,
-        margin=dict(l=40, r=40, t=60, b=40)
+        margin=dict(l=45, r=40, t=60, b=40)
     )
+    fig1.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
+    fig1.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
 
-    # 2. Biểu đồ cấu trúc đường cong lợi suất (Yield Curve Term Structure)
+    # 2. Biểu đồ cấu trúc đường cong lợi suất (Toàn bộ 11 kỳ hạn)
     fig2 = go.Figure()
     idx_1yr_ago = max(0, len(df) - step_1yr)
     idx_5yr_ago = max(0, len(df) - step_5yr)
 
     fig2.add_trace(go.Scatter(
-        x=tenors, y=[latest_row[t] for t in tenors],
+        x=all_tenors, y=[latest_row[t] for t in all_tenors],
         mode='lines+markers', name=f'Hiện tại ({df.index[-1].strftime("%d/%m/%Y")})',
-        line=dict(color='#34d399', width=3), marker=dict(size=8)
+        line=dict(color='#059669', width=3), marker=dict(size=8)
     ))
     fig2.add_trace(go.Scatter(
-        x=tenors, y=[df.iloc[idx_1yr_ago][t] for t in tenors],
+        x=all_tenors, y=[df.iloc[idx_1yr_ago][t] for t in all_tenors],
         mode='lines+markers', name=f'1 năm trước ({df.index[idx_1yr_ago].strftime("%d/%m/%Y")})',
-        line=dict(color='#38bdf8', width=2, dash='dash'), marker=dict(size=6)
+        line=dict(color='#2563eb', width=2, dash='dash'), marker=dict(size=6)
     ))
     fig2.add_trace(go.Scatter(
-        x=tenors, y=[df.iloc[idx_5yr_ago][t] for t in tenors],
+        x=all_tenors, y=[df.iloc[idx_5yr_ago][t] for t in all_tenors],
         mode='lines+markers', name=f'5 năm trước ({df.index[idx_5yr_ago].strftime("%d/%m/%Y")})',
-        line=dict(color='#f472b6', width=2, dash='dot'), marker=dict(size=6)
+        line=dict(color='#d97706', width=2, dash='dot'), marker=dict(size=6)
     ))
     fig2.update_layout(
-        title='Cấu trúc Đường cong Lợi suất (Yield Curve Term Structure)',
+        title='Cấu trúc Đường cong Lợi suất (Yield Curve Term Structure - 11 Kỳ hạn)',
         xaxis_title='Kỳ hạn', yaxis_title='Lợi suất (%)',
-        template='plotly_dark',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(15,23,42,0.6)',
-        font=dict(family='Inter, sans-serif', size=13),
+        template='plotly_white',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='#ffffff',
+        font=dict(family='Inter, sans-serif', size=13, color='#0f172a'),
+        hoverlabel=dict(bgcolor='white', bordercolor='#cbd5e1', font=dict(family='Inter, sans-serif', size=13, color='#0f172a')),
+        legend=dict(font=dict(color='#0f172a', size=12), bgcolor='rgba(255,255,255,0.9)', bordercolor='#e2e8f0', borderwidth=1),
         height=380,
-        margin=dict(l=40, r=40, t=60, b=40)
+        margin=dict(l=45, r=40, t=60, b=40)
     )
+    fig2.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
+    fig2.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
 
     # 3. Biểu đồ chênh lệch 10Y - 1Y
     fig3 = go.Figure()
@@ -92,36 +102,39 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
         fig3.add_trace(go.Scatter(
             x=df.index, y=df['Spread_10Y_1Y'],
             mode='lines', name='Spread 10Y - 1Y',
-            fill='tozeroy', fillcolor='rgba(52,211,153,0.15)',
-            line=dict(color='#34d399', width=2)
+            fill='tozeroy', fillcolor='rgba(5, 150, 105, 0.12)',
+            line=dict(color='#059669', width=2)
         ))
     fig3.update_layout(
         title='Chênh lệch Lợi suất Kỳ hạn 10Y - 1Y (Term Spread %)',
         xaxis_title='Thời gian', yaxis_title='Spread (%)',
-        template='plotly_dark',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(15,23,42,0.6)',
-        font=dict(family='Inter, sans-serif', size=13),
+        template='plotly_white',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='#ffffff',
+        font=dict(family='Inter, sans-serif', size=13, color='#0f172a'),
+        hoverlabel=dict(bgcolor='white', bordercolor='#cbd5e1', font=dict(family='Inter, sans-serif', size=13, color='#0f172a')),
         height=380,
-        margin=dict(l=40, r=40, t=60, b=40)
+        margin=dict(l=45, r=40, t=60, b=40)
     )
+    fig3.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
+    fig3.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#f1f5f9')
 
     # Render sang chuỗi HTML
     plot1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn')
     plot2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
     plot3_html = fig3.to_html(full_html=False, include_plotlyjs=False)
 
-    # Bảng dữ liệu HTML (30 quan sát gần nhất)
-    recent_df = df.tail(30).iloc[::-1]
+    # Bảng dữ liệu HTML (20 quan sát ngày gần nhất cho các kỳ hạn chính)
+    recent_df = df.tail(20).iloc[::-1]
     table_rows = []
     for dt, row in recent_df.iterrows():
-        tds = [f"<td>{dt.strftime('%d/%m/%Y')}</td>"]
-        for t in tenors:
+        tds = [f"<td><strong>{dt.strftime('%d/%m/%Y')}</strong></td>"]
+        for t in core_tenors:
             tds.append(f"<td>{row.get(t, '-'):.3f}%</td>")
         sp = row.get('Spread_10Y_1Y', '-')
         tds.append(f"<td>{sp:.3f}%</td>" if isinstance(sp, (int, float)) else "<td>-</td>")
         table_rows.append(f"<tr>{''.join(tds)}</tr>")
 
-    th_cols = "".join([f"<th>Kỳ hạn {t}</th>" for t in tenors])
+    th_cols = "".join([f"<th>Kỳ hạn {t}</th>" for t in core_tenors])
 
     html_content = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -133,35 +146,33 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }}
         body {{
-            background: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
-            color: #f8fafc;
+            background-color: #f8fafc;
+            color: #0f172a;
             min-height: 100vh;
-            padding: 30px;
+            padding: 32px;
         }}
         .header {{
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 24px 32px;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
-            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
             margin-bottom: 28px;
         }}
         .header h1 {{
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
-            background: linear-gradient(90deg, #38bdf8, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #0f172a;
         }}
-        .header .subtitle {{ font-size: 14px; color: #94a3b8; margin-top: 4px; }}
+        .header .subtitle {{ font-size: 14px; color: #64748b; margin-top: 4px; }}
         .badge {{
             padding: 8px 16px;
-            background: rgba(52, 211, 153, 0.15);
-            border: 1px solid rgba(52, 211, 153, 0.3);
-            color: #34d399;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #059669;
             border-radius: 9999px;
             font-size: 13px;
             font-weight: 600;
@@ -173,27 +184,27 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
             margin-bottom: 28px;
         }}
         .kpi-card {{
-            background: rgba(30, 41, 59, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 22px;
-            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
             transition: transform 0.2s ease, border-color 0.2s ease;
         }}
         .kpi-card:hover {{
             transform: translateY(-3px);
-            border-color: rgba(56, 189, 248, 0.4);
+            border-color: #cbd5e1;
         }}
-        .kpi-title {{ font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }}
-        .kpi-value {{ font-size: 28px; font-weight: 700; color: #f8fafc; margin: 10px 0 6px 0; }}
-        .kpi-desc {{ font-size: 13px; color: #34d399; }}
+        .kpi-title {{ font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }}
+        .kpi-value {{ font-size: 28px; font-weight: 700; color: #0f172a; margin: 10px 0 6px 0; }}
+        .kpi-desc {{ font-size: 13px; color: #059669; font-weight: 500; }}
         .chart-container {{
-            background: rgba(30, 41, 59, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 20px;
+            padding: 24px;
             margin-bottom: 28px;
-            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
         }}
         .grid-2 {{
             display: grid;
@@ -203,37 +214,37 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
         }}
         @media (max-width: 1024px) {{ .grid-2 {{ grid-template-columns: 1fr; }} }}
         .table-container {{
-            background: rgba(30, 41, 59, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 24px;
-            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
             overflow-x: auto;
         }}
-        .table-container h2 {{ font-size: 18px; margin-bottom: 16px; color: #38bdf8; }}
+        .table-container h2 {{ font-size: 18px; margin-bottom: 16px; color: #0f172a; font-weight: 700; }}
         table {{
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
         }}
         th, td {{
-            padding: 12px 14px;
+            padding: 14px 16px;
             text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid #f1f5f9;
         }}
         th {{
-            background: rgba(15, 23, 42, 0.5);
-            color: #94a3b8;
+            background: #f8fafc;
+            color: #475569;
             font-weight: 600;
         }}
-        tr:hover {{ background: rgba(255, 255, 255, 0.03); }}
+        tr:hover {{ background: #f8fafc; }}
     </style>
 </head>
 <body>
     <div class="header">
         <div>
             <h1>Hệ Thống Phân Tích Lợi Suất Trái Phiếu Chính Phủ Việt Nam</h1>
-            <div class="subtitle">Khung phân tích định lượng 10 năm (2016 - 2026) | Tự động cập nhật hàng tuần qua GitHub Actions</div>
+            <div class="subtitle">Tập trung kỳ hạn chủ đạo KBNN & Thứ cấp (3Y - 15Y) | Dữ liệu chính thức từ Sở GDCK Hà Nội (HNX)</div>
         </div>
         <div class="badge">Cập nhật: {df.index[-1].strftime('%d/%m/%Y')}</div>
     </div>
@@ -257,7 +268,7 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
         <div class="kpi-card">
             <div class="kpi-title">Tổng Số Quan Sát</div>
             <div class="kpi-value">{len(df)}</div>
-            <div class="kpi-desc">Từ {df.index[0].strftime('%Y')} đến {df.index[-1].strftime('%Y')}</div>
+            <div class="kpi-desc">Từ {df.index[0].strftime('%Y')} đến {df.index[-1].strftime('%Y')} (Theo ngày)</div>
         </div>
     </div>
 
@@ -275,7 +286,7 @@ def generate_html_dashboard(df: pd.DataFrame, output_path: str):
     </div>
 
     <div class="table-container">
-        <h2>Bảng Dữ Liệu Lợi Suất TPCP Lịch Sử (30 Tuần Gần Nhất)</h2>
+        <h2>Bảng Dữ Liệu Lợi Suất TPCP Lịch Sử (20 Ngày Gần Nhất - Các Kỳ Hạn Chủ Đạo)</h2>
         <table>
             <thead>
                 <tr>

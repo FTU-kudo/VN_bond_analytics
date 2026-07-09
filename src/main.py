@@ -29,19 +29,33 @@ def main():
         print("[!] Lỗi: Pipeline dừng lại do không thu thập được dữ liệu.")
         return
 
-    # 2. Xuất file 1: Dữ liệu lịch sử (Historical Data CSV & Excel XLSX)
-    csv_path = os.path.join(output_dir, 'bond_data.csv')
+    # 2. Xuất file 1: Dữ liệu lịch sử (Excel XLSX 2 Sheet & CSV)
     xlsx_path = os.path.join(output_dir, 'bond_data.xlsx')
+    csv_core_path = os.path.join(output_dir, 'bond_data.csv')
+    csv_full_path = os.path.join(output_dir, 'bond_data_full_11_tenors.csv')
+
+    # Chuẩn bị Sheet 1 (Chuẩn chủ đạo 3Y - 5Y - 7Y - 10Y - 15Y)
+    core_cols = [c for c in ['3Y', '5Y', '7Y', '10Y', '15Y', 'Spread_10Y_1Y', 'Spread_10Y_2Y', 'Curve_Slope'] if c in df.columns]
+    df_sheet1 = df[core_cols].copy()
+
+    # Sheet 2 (Toàn bộ 11 kỳ hạn từ 3M đến 20Y)
+    df_sheet2 = df.copy()
+
     try:
-        df.to_csv(csv_path, encoding='utf-8-sig')
-        df.to_excel(xlsx_path)
-        print(f"[1/3] Đã xuất file Dữ liệu lịch sử (CSV & Excel): {csv_path} | {xlsx_path}")
+        with pd.ExcelWriter(xlsx_path, engine='openpyxl') as writer:
+            df_sheet1.to_excel(writer, sheet_name='Ky_han_chinh_3Y_15Y')
+            df_sheet2.to_excel(writer, sheet_name='Toan_bo_11_ky_han')
+        df_sheet1.to_csv(csv_core_path, encoding='utf-8-sig')
+        df_sheet2.to_csv(csv_full_path, encoding='utf-8-sig')
+        print(f"[1/3] Đã xuất file Excel 2 Sheet: {xlsx_path}")
+        print(f"      - Sheet 1 (3Y-15Y) CSV: {csv_core_path}")
+        print(f"      - Sheet 2 (3M-20Y) CSV: {csv_full_path}")
     except PermissionError:
-        fallback_csv = os.path.join(output_dir, 'bond_data_latest.csv')
         fallback_xlsx = os.path.join(output_dir, 'bond_data_latest.xlsx')
-        df.to_csv(fallback_csv, encoding='utf-8-sig')
-        df.to_excel(fallback_xlsx)
-        print(f"[1/3] Cảnh báo file đang mở. Đã lưu dữ liệu mới vào: {fallback_csv} | {fallback_xlsx}")
+        with pd.ExcelWriter(fallback_xlsx, engine='openpyxl') as writer:
+            df_sheet1.to_excel(writer, sheet_name='Ky_han_chinh_3Y_15Y')
+            df_sheet2.to_excel(writer, sheet_name='Toan_bo_11_ky_han')
+        print(f"[1/3] Cảnh báo file đang mở. Đã lưu Excel 2 sheet vào: {fallback_xlsx}")
 
     # 3. Xuất file 2: Dashboard trực quan HTML (Interactive Dashboard)
     html_path = os.path.join(output_dir, 'bond_dashboard.html')
