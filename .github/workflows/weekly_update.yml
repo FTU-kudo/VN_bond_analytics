@@ -1,4 +1,4 @@
-name: Weekly Bond Yield Update
+name: Weekly Bond Yield Update & Deploy Pages
 
 on:
   schedule:
@@ -6,47 +6,67 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch: # Cho phép kích hoạt thủ công để test trực tiếp trên GitHub
 
-jobs:
-  update-bond-data:
-    runs-on: ubuntu-latest
+# Thiết lập quyền hạn cho GITHUB_TOKEN để vừa commit được code, vừa deploy được Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
-    permissions:
-      contents: write # Cấp quyền cho bot tự commit file vào repo
+# Chỉ cho phép một deployment chạy đồng thời để tránh xung đột
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
 
     env:
       PYTHONUTF8: 1
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run Main Quantitative Analysis Pipeline
-      run: |
-        python src/main.py
+      - name: Run Main Quantitative Analysis Pipeline
+        run: |
+          python src/main.py
 
-    - name: Upload Output Artifacts (CSV, HTML, PDF)
-      uses: actions/upload-artifact@v4
-      with:
-        name: vietnam-bond-analysis-reports
-        path: output/
-        retention-days: 30
+      - name: Upload Output Artifacts (CSV, HTML, PDF)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vietnam-bond-analysis-reports
+          path: output/
+          retention-days: 30
 
-    - name: Commit and Push Output Files to Repository
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add output/ src/fonts/ requirements.txt src/
-        git commit -m "Auto-update: Vietnam 10-Year Bond Analytics & Reports ($(date -u +'%Y-%m-%d'))" || echo "No changes to commit"
-        git push
+      - name: Commit and Push Output Files to Repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/ src/fonts/ requirements.txt src/
+          git commit -m "Auto-update: Vietnam 10-Year Bond Analytics & Reports ($(date -u +'%Y-%m-%d'))" || echo "No changes to commit"
+          git push
 
+      # === ĐƯA LÊN GITHUB PAGES ===
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './output' # Lấy trực tiếp từ thư mục output vừa chạy xong
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
