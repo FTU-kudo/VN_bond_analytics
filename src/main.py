@@ -58,7 +58,7 @@ def main():
         print(f"[1/3] Cảnh báo file đang mở. Đã lưu Excel 2 sheet vào: {fallback_xlsx}")
 
     # 3. Xuất file 2: Dashboard trực quan HTML (Interactive Dashboard)
-    html_path = os.path.join(output_dir, 'bond_dashboard.html')
+    html_path = os.path.join(output_dir, 'index.html')
     try:
         generate_html_dashboard(df, html_path)
         print(f"[2/3] Đã xuất file Dashboard trực quan HTML: {html_path}")
